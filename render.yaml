@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: scamshield-layer3
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn scamshield:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: BASE_URL
+        sync: false
