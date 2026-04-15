@@ -332,6 +332,9 @@ def security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Access-Control-Allow-Origin"] = "*"  # Allow Android app
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     return response
 
 app.after_request(security_headers)
@@ -367,6 +370,114 @@ def api_metrics():
         "low_risk": low,
         "avg_score": avg
     })
+
+@app.route("/api/call-event", methods=["POST"])
+def api_call_event():
+    """Handle call events from Android app."""
+    try:
+        data = request.get_json()
+        phone_number = data.get("phone_number", "unknown")
+        event = data.get("event", "")
+        event_data = data.get("data", "")
+        
+        print(f"[SCAMSHIELD] Android event: {event} from {phone_number}")
+        
+        if event == "CALL_STARTED":
+            # Create new alert for Android call
+            call_sid = f"ANDROID_{int(time.time())}"
+            upsert_alert(call_sid, {
+                "caller_number": phone_number,
+                "source": "android_app"
+            })
+            return jsonify({"status": "ok", "call_id": call_sid})
+        
+        elif event.startswith("RESPONSE_"):
+            # Handle question responses
+            # Find the most recent alert for this number
+            with alerts_lock:
+                for alert in alerts:
+                    if alert["caller_number"] == phone_number and alert.get("source") == "android_app":
+                        # Add response to transcripts
+                        current_transcripts = alert.get("transcripts", [])
+                        current_transcripts.append(event_data)
+                        
+                        # Analyze for keywords
+                        hits, keyword_score = scan_keywords(event_data)
+                        current_hits = alert.get("keyword_hits", [])
+                        current_hits.extend(hits)
+                        
+                        # Update alert
+                        alert["transcripts"] = current_transcripts
+                        alert["keyword_hits"] = current_hits
+                        
+                        # Calculate immediate score
+                        total_keyword_score = sum(kw["weight"] for kw in KEYWORDS 
+                                                for hit in current_hits 
+                                                if kw["phrase"] == hit)
+                        immediate_score, immediate_verdict = calculate_score(total_keyword_score, {})
+                        alert["threat_score"] = immediate_score
+                        alert["verdict"] = immediate_verdict
+                        
+                        # Start LLM analysis in background
+                        threading.Thread(target=analyze_transcript_async, 
+                                       args=(alert["call_sid"], event_data), daemon=True).start()
+                        
+                        return jsonify({"status": "ok", "threat_score": immediate_score, "verdict": immediate_verdict})
+                        
+        return jsonify({"status": "ok"})
+        
+    except Exception as e:
+        print(f"[SCAMSHIELD] Error handling Android event: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/analyze-call", methods=["POST"])
+def api_analyze_call():
+    """Analyze complete call for Android app."""
+    try:
+        data = request.get_json()
+        call_id = data.get("call_id", "")
+        responses = data.get("responses", [])
+        
+        # Find the alert
+        with alerts_lock:
+            for alert in alerts:
+                if alert["call_sid"] == call_id:
+                    # Calculate final score with all responses
+                    all_text = " ".join(responses)
+                    hits, keyword_score = scan_keywords(all_text)
+                    
+                    # Get LLM analysis for combined text
+                    llm_result = call_groq(all_text)
+                    
+                    # Calculate final score
+                    final_score, final_verdict = calculate_score(keyword_score, llm_result)
+                    
+                    # Update alert
+                    alert["threat_score"] = final_score
+                    alert["verdict"] = final_verdict
+                    alert["llm_result"] = llm_result
+                    
+                    return jsonify({
+                        "threat_score": final_score,
+                        "verdict": final_verdict,
+                        "llm_result": llm_result
+                    })
+        
+        # If alert not found, analyze anyway
+        all_text = " ".join(responses)
+        hits, keyword_score = scan_keywords(all_text)
+        llm_result = call_groq(all_text)
+        final_score, final_verdict = calculate_score(keyword_score, llm_result)
+        
+        return jsonify({
+            "threat_score": final_score,
+            "verdict": final_verdict,
+            "llm_result": llm_result
+        })
+        
+    except Exception as e:
+        print(f"[SCAMSHIELD] Error analyzing call: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/health")
 def health():

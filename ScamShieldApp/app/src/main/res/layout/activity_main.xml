@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="#f5f5f5">
+
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/ic_shield"
+        android:layout_marginBottom="32dp"
+        android:contentDescription="ScamShield Logo" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ScamShield"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="#1976d2"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AI-Powered Call Protection"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="48dp" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="❌ ScamShield is INACTIVE\n\nTap below to enable call screening"
+        android:textSize="18sp"
+        android:textAlignment="center"
+        android:textColor="#d32f2f"
+        android:background="#ffffff"
+        android:padding="24dp"
+        android:layout_marginBottom="32dp"
+        android:elevation="4dp" />
+
+    <Button
+        android:id="@+id/enableButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Enable ScamShield"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        android:background="#1976d2"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/viewDashboardButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="View Dashboard"
+        android:textSize="16sp"
+        android:textColor="#1976d2"
+        android:background="#e3f2fd"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ScamShield uses AI to screen incoming calls and protect you from scams. When enabled, unknown callers will be asked security questions before reaching you."
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:textAlignment="center"
+        android:lineSpacingExtra="4dp" />
+
+</LinearLayout>
