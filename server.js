@@ -82,6 +82,22 @@ app.post('/api/report', async (req, res) => {
     }
 });
 
+// 4. Quick status check for extension
+app.get('/api/check', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    try {
+        const link = await Link.findOne({ url });
+        res.json({ 
+            blocked: link ? link.reportCount > 5 : false,
+            reportCount: link ? link.reportCount : 0 
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Serve Dashboard
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
