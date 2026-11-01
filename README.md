@@ -1,58 +1,50 @@
-# ScamShield Layer 3
+# Tecknotsava ScamShield
 
-## What it does
+A Flask service that evaluates suspicious messages/calls and can use Groq analysis and Twilio telephony to support scam detection workflows. Render configuration is included for a production web service.
 
-ScamShield is a real-time vishing (voice phishing) detection system that intercepts phone calls via Twilio, uses AI to screen callers with security questions, and analyzes responses with Groq's Llama 3 LLM to detect scam indicators. All results are displayed on a live web dashboard with threat scoring and real-time alerts.
+## Architecture
 
-## Tech stack
-
-| Component | Technology |
-|-----------|------------|
-| **Twilio** | Call handling, speech-to-text, TwiML responses |
-| **Groq** | Llama 3 LLM for intent analysis and scam detection |
-| **Render** | Cloud hosting platform (free tier deployment) |
-| **Flask** | Python web framework for webhooks and API |
-| **Dashboard** | Pure HTML/CSS/JS with Canvas 2D charts |
-
-## Setup in 5 steps
-
-1. **Clone repo and install dependencies**
-   ```bash
-   git clone <repo-url>
-   cd scamshield-layer3
-   pip install -r requirements.txt
-   ```
-
-2. **Copy `.env.example` to `.env` and fill in values**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Twilio and Groq API credentials
-   ```
-
-3. **Deploy to Render — set env vars in dashboard**
-   - Connect your GitHub repo to Render
-   - Set all environment variables from `.env` in Render dashboard
-   - Deploy as Web Service
-
-4. **Set Twilio webhook URL to `https://your-app.onrender.com/voice`**
-   - In Twilio Console, configure your phone number's webhook URL
-   - Set HTTP method to POST
-
-5. **Call your Twilio number to test**
-   - The system will answer and ask screening questions
-   - Check the dashboard for real-time threat analysis
-
-## Dashboard URL
-
-Access your live dashboard at: `https://your-app.onrender.com`
-
-## How threat scoring works
-
-The system calculates threat scores using this formula:
-```
-score = min(100, keyword_hits * 8 + llm_confidence * 40 + tactic_count * 5)
+```mermaid
+flowchart LR
+  Client[Web or webhook client] --> Flask[scamshield.py]
+  Flask --> Analyze[scam detection and prompt logic]
+  Flask --> Groq[Groq API]
+  Flask --> Twilio[Twilio voice/SMS integration]
 ```
 
-- **LOW** (0-39): Safe caller, call proceeds normally
-- **MEDIUM** (40-69): Suspicious activity, user warned to exercise caution  
-- **HIGH** (70-100): High-risk scam detected, call automatically terminated
+## Setup
+
+```bash
+python -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+flask --app scamshield run --debug
+```
+
+Required integrations are configured with `GROQ_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, and `BASE_URL`; keep them outside Git.
+
+## Deployment
+
+`render.yaml` installs requirements and runs `gunicorn scamshield:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60`. Configure HTTPS and set Twilio webhook URLs to the deployed service.
+
+## Security and limitations
+
+Treat message content and model output as untrusted. Add authentication, rate limiting, request-signature validation for webhooks, audit logging, and privacy/retention controls before handling real call or message data. No automated test suite is configured.
+
+## Security and operations
+
+- Keep credentials, database URLs, OAuth tokens, API keys, and signing secrets in environment variables; never commit them.
+- Validate and constrain uploaded files and user input at the server boundary, and enable HTTPS in production.
+- Review dependency updates and rotate any credential that has appeared in repository history.
+
+## Testing
+
+The repository currently has no comprehensive automated test suite unless noted above. Before production changes, add tests for authentication/authorization, validation failures, persistence errors, and the primary user workflow.
+
+## Limitations and roadmap
+
+This is an actively evolving project. Production hardening, observability, rate limiting, backup/retention policy, and accessibility/performance validation should be completed before handling sensitive or high-volume workloads.
+
+## License
+
+See the repository license file and package metadata for the authoritative terms.
