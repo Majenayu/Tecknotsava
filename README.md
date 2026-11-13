@@ -48,3 +48,14 @@ This is an actively evolving project. Production hardening, observability, rate 
 ## License
 
 See the repository license file and package metadata for the authoritative terms.
+## Implementation notes
+
+`scamshield.py` exposes the Flask service and Twilio webhook workflow. The implemented endpoints include `/voice`, `/answer/<question_num>`, `/status`, `/api/alerts`, `/api/metrics`, `/api/call-event`, `/api/analyze-call`, and `/health`. Groq is used for analysis, while Twilio handles voice/SMS interaction; `render.yaml` supplies the Render deployment contract.
+
+### Security and operations
+
+Before production use, authenticate operator endpoints, validate Twilio signatures, rate-limit public analysis routes, redact phone numbers/transcripts in logs, and define retention/consent rules. Treat model classifications as assistance rather than definitive fraud determinations. Test webhook retries, malformed TwiML requests, provider timeouts, and duplicate call events.
+
+### License status
+
+No dedicated license file is present in the inspected tree; license terms are unspecified.
